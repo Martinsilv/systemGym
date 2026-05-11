@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Dark mode via clase en lugar de tailwind.config.js */
+@variant dark (&:where(.dark, .dark *));
+
+/* Tu tema custom — reemplaza el extend de tailwind.config.js */
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  --color-success-light: #dcfce7;
+  --color-success: #16a34a;
+  --color-success-dark: #166534;
+
+  --color-warning-light: #fef9c3;
+  --color-warning: #ca8a04;
+  --color-warning-dark: #854d0e;
+
+  --color-danger-light: #fee2e2;
+  --color-danger: #dc2626;
+  --color-danger-dark: #991b1b;
+
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* Variables CSS globales para el tema */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+}
+
+.dark {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #1e293b;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
