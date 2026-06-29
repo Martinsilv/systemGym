@@ -9,7 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useGym } from "../../context/GymContext";
-
+import logoMono from "../../assets/logomono1.png";
 const navItems = [
   {
     to: "/dashboard",
@@ -60,8 +60,12 @@ export default function Sidebar({ open, onClose }) {
         {/* Header del sidebar */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-              G
+            <div className="h-12 w-12 rounded-lg overflow-hidden shadow-md">
+              <img
+                src={logoMono}
+                alt="Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="font-semibold text-white text-sm">
               {gymConfig.nombre}

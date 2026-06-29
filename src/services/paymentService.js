@@ -6,14 +6,9 @@ import { db } from './firebase'
 import { calcularNuevaFechaVencimiento, dateToTimestamp } from '../utils/dateUtils'
 import { actualizarVencimiento } from './studentService'
 import { firestoreTimestampToDate } from '../utils/statusUtils'
- 
+
 /**
  * Registrar un pago con monto variable según actividad
- * @param {Object} alumno - Documento del alumno
- * @param {number} monto - Monto a cobrar (puede variar del precio original)
- * @param {string} actividad - Nombre de la actividad
- * @param {number} duracionDias - Cuántos días se extiende (default 30)
- * @param {string} observaciones - Notas sobre el pago
  */
 export async function registrarPago(
   alumno,
@@ -24,12 +19,10 @@ export async function registrarPago(
 ) {
   const ahora = new Date()
   
-  // Convertir el timestamp actual de vencimiento a Date
   const vencimientoActual = alumno.fechaVencimiento 
     ? firestoreTimestampToDate(alumno.fechaVencimiento)
     : null
  
-  // Calcular la nueva fecha de vencimiento
   const nuevaFechaVencimiento = calcularNuevaFechaVencimiento(
     vencimientoActual,
     duracionDias
@@ -50,15 +43,12 @@ export async function registrarPago(
     createdAt: Timestamp.fromDate(ahora),
   }
  
-  // Guardar el pago
   const docRef = await addDoc(collection(db, 'pagos'), pago)
-  
-  // Actualizar la fecha de vencimiento del alumno
   await actualizarVencimiento(alumno.id, nuevaFechaVencimiento)
  
   return { id: docRef.id, ...pago, nuevaFechaVencimiento }
 }
- 
+
 /**
  * Obtener historial de pagos de un alumno
  */
@@ -72,7 +62,7 @@ export async function getPagosPorAlumno(alumnoId, limite = 20) {
   const snapshot = await getDocs(q)
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 }
- 
+
 /**
  * Obtener todos los pagos (para vista de administrador)
  */
@@ -85,7 +75,7 @@ export async function getTodosPagos(limite = 100) {
   const snapshot = await getDocs(q)
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 }
- 
+
 /**
  * Obtener pagos del mes actual
  */
@@ -103,7 +93,7 @@ export async function getPagosMesActual() {
   const snapshot = await getDocs(q)
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 }
- 
+
 export async function getResumenIngresos() {
   try {
     const q = query(
@@ -121,20 +111,19 @@ export async function getResumenIngresos() {
     const ahora = new Date()
     const mesActual = ahora.getMonth()
     const anioActual = ahora.getFullYear()
-let totalTodos = 0;
+    let totalTodos = 0
 
-pagos.forEach(pago => {
-  totalTodos += pago.monto || 0;
-});
+    pagos.forEach(pago => {
+      totalTodos += pago.monto || 0
+    })
+
     let totalMes = 0
     let totalHoy = 0
-
     const porActividad = {}
 
     pagos.forEach(pago => {
       const fecha = pago.fechaPago.toDate()
 
-      // 🔥 TOTAL MES
       if (
         fecha.getMonth() === mesActual &&
         fecha.getFullYear() === anioActual
@@ -142,12 +131,10 @@ pagos.forEach(pago => {
         totalMes += pago.monto || 0
       }
 
-      // 🔥 TOTAL HOY
       if (fecha.toDateString() === ahora.toDateString()) {
         totalHoy += pago.monto || 0
       }
 
-      // 🔥 AGRUPAR POR ACTIVIDAD
       const actividad = pago.actividad || "Sin actividad"
 
       if (!porActividad[actividad]) {
@@ -162,12 +149,100 @@ pagos.forEach(pago => {
       totalHoy,
       cantidadPagos: pagos.length,
       totalTodos,
-      porActividad, // 🔥 IMPORTANTE
+      porActividad,
       pagos
     }
 
   } catch (error) {
     console.error("Error en getResumenIngresos:", error)
     throw error
+  }
+}
+
+/**
+ * 🔥 NUEVO: Obtener ingresos para últimos 12 meses
+ */
+export async function getIngresosUltimos12Meses() {
+  try {
+    const q = query(
+      collection(db, 'pagos'),
+      orderBy('fechaPago', 'desc')
+    )
+
+    const snapshot = await getDocs(q)
+    const pagos = snapshot.docs.map(doc => ({ ...doc.data() }))
+
+    const porMes = {}
+
+    pagos.forEach(pago => {
+      const fecha = pago.fechaPago.toDate()
+      const mesAno = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
+
+      if (!porMes[mesAno]) {
+        porMes[mesAno] = 0
+      }
+      porMes[mesAno] += pago.monto || 0
+    })
+
+    return porMes
+  } catch (error) {
+    console.error("Error en getIngresosUltimos12Meses:", error)
+    throw error
+  }
+}
+
+/**
+ * 🔥 NUEVO: Obtener ingresos por mes específico
+ */
+export async function getIngresosMes(mes, ano) {
+  try {
+    const primerDia = new Date(ano, mes - 1, 1)
+    const ultimoDia = new Date(ano, mes, 0)
+
+    const q = query(
+      collection(db, 'pagos'),
+      where('fechaPago', '>=', Timestamp.fromDate(primerDia)),
+      where('fechaPago', '<=', Timestamp.fromDate(ultimoDia)),
+      orderBy('fechaPago', 'desc')
+    )
+
+    const snapshot = await getDocs(q)
+    const pagos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+    const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0)
+    const cantidad = pagos.length
+
+    return {
+      total,
+      cantidad,
+      pagos,
+      porActividad: pagos.reduce((acc, pago) => {
+        const actividad = pago.actividad || 'Sin actividad'
+        acc[actividad] = (acc[actividad] || 0) + (pago.monto || 0)
+        return acc
+      }, {})
+    }
+  } catch (error) {
+    console.error("Error en getIngresosMes:", error)
+    throw error
+  }
+}
+
+/**
+ * 🔥 NUEVO: Comparar ingresos entre dos meses
+ */
+export async function compararIngresosEntreMeses(mes1, ano1, mes2, ano2) {
+  const resumen1 = await getIngresosMes(mes1, ano1)
+  const resumen2 = await getIngresosMes(mes2, ano2)
+
+  const diferencia = resumen2.total - resumen1.total
+  const porcentaje = resumen1.total !== 0 ? ((diferencia / resumen1.total) * 100).toFixed(2) : 0
+
+  return {
+    mes1: { mes: mes1, ano: ano1, ...resumen1 },
+    mes2: { mes: mes2, ano: ano2, ...resumen2 },
+    diferencia,
+    porcentaje,
+    mejorada: diferencia > 0
   }
 }

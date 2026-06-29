@@ -6,7 +6,10 @@ import {
   getResumenAsistenciasMes,
 } from "../services/attendanceService";
 import { calcularEstado } from "../utils/statusUtils";
-import { /* formatearFecha, */ getNombreMes } from "../utils/dateUtils";
+import { getNombreMes } from "../utils/dateUtils";
+import AttendanceChart from "../components/graphicChart/Attendancechart";
+import RevenueChart from "../components/graphicChart/Revenuechart";
+//import MonthComparison from "../components/graphicChart/MonthComparison";
 import {
   Users,
   DollarSign,
@@ -24,10 +27,10 @@ export default function DashboardPage() {
   const [asistenciasHoy, setAsistenciasHoy] = useState([]);
   const [alumnosVencidos, setAlumnosVencidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview"); // 'overview', 'attendance', 'revenue', 'comparison'
 
   useEffect(() => {
     fetchData();
-    // Refrescar cada 30 segundos
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -48,7 +51,6 @@ export default function DashboardPage() {
         getResumenIngresos(),
       ]);
 
-      // Calcular estadísticas
       const activos = alumnos.filter(
         (a) => calcularEstado(a.fechaVencimiento).status === "activo",
       ).length;
@@ -102,174 +104,241 @@ export default function DashboardPage() {
         <p className="text-gray-500 text-xs mt-2">{getNombreMes()}</p>
       </div>
 
-      {/* Grid principal de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Total alumnos */}
-        <StatCard
-          icon={<Users size={28} />}
-          title="Total Alumnos"
-          value={stats?.totalAlumnos || 0}
-          color="blue"
-          subtext={`${stats?.alumnosActivos || 0} activos`}
-        />
-
-        {/* Ingresos mes */}
-        <StatCard
-          icon={<DollarSign size={28} />}
-          title="Ingresos este mes"
-          value={`$${(stats?.ingresosMes || 0).toLocaleString("es-AR")}`}
-          color="green"
-          subtext={`${stats?.pagosRegistrados || 0} pagos`}
-        />
-
-        {/* Asistencias hoy */}
-        <StatCard
-          icon={<Activity size={28} />}
-          title="Asistencias hoy"
-          value={stats?.asistenciasHoy || 0}
-          color="purple"
-          subtext={`${stats?.asistenciasMes || 0} este mes`}
-        />
-
-        {/* Membresías por vencer */}
-        <StatCard
-          icon={<AlertCircle size={28} />}
-          title="Por cobrar"
-          value={stats?.alumnosPorVencer || 0}
-          color="orange"
-          subtext={`${stats?.alumnosVencidos || 0} vencidas`}
-        />
+      {/* Tabs de navegación */}
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-gray-800">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`px-4 py-3 font-medium transition-colors ${
+            activeTab === "overview"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Resumen
+        </button>
+        <button
+          onClick={() => setActiveTab("attendance")}
+          className={`px-4 py-3 font-medium transition-colors ${
+            activeTab === "attendance"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Asistencias
+        </button>
+        <button
+          onClick={() => setActiveTab("revenue")}
+          className={`px-4 py-3 font-medium transition-colors ${
+            activeTab === "revenue"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Ingresos
+        </button>
+        {/*  <button
+          onClick={() => setActiveTab("comparison")}
+          className={`px-4 py-3 font-medium transition-colors ${
+            activeTab === "comparison"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Comparativa
+        </button> */}
       </div>
 
-      {/* Segundo nivel de información */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Estado de membresías */}
-        <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <CheckCircle2 size={20} className="text-green-500" />
-            Estado de Membresías
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-900/20 rounded-lg border border-green-800/50">
-              <span className="text-green-300 text-sm">Al día</span>
-              <span className="text-xl font-bold text-green-400">
-                {stats?.alumnosActivos || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-yellow-900/20 rounded-lg border border-yellow-800/50">
-              <span className="text-yellow-300 text-sm">Por vencer</span>
-              <span className="text-xl font-bold text-yellow-400">
-                {stats?.alumnosPorVencer || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-red-900/20 rounded-lg border border-red-800/50">
-              <span className="text-red-300 text-sm">Vencidas</span>
-              <span className="text-xl font-bold text-red-400">
-                {stats?.alumnosVencidos || 0}
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Tab: Resumen General */}
+      {activeTab === "overview" && (
+        <>
+          {/* Grid principal de estadísticas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatCard
+              icon={<Users size={28} />}
+              title="Total Alumnos"
+              value={stats?.totalAlumnos || 0}
+              color="blue"
+              subtext={`${stats?.alumnosActivos || 0} activos`}
+            />
 
-        {/* Últimas asistencias */}
-        <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Clock size={20} className="text-blue-500" />
-            Últimas entradas
-          </h2>
-          <div className="space-y-2">
-            {asistenciasHoy.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">
-                Sin asistencias hoy
-              </p>
-            ) : (
-              asistenciasHoy.map((asistencia) => (
-                <div
-                  key={asistencia.id}
-                  className="flex items-center justify-between p-2 hover:bg-gray-800/50 rounded transition-colors"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                    <span className="text-gray-300 text-sm truncate">
-                      {asistencia.nombreAlumno}
-                    </span>
-                  </div>
-                  <span className="text-gray-500 text-xs ml-2 flex-shrink-0">
-                    {new Date(
-                      asistencia.fechaHora.toDate?.() || asistencia.fechaHora,
-                    ).toLocaleTimeString("es-AR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+            <StatCard
+              icon={<DollarSign size={28} />}
+              title="Ingresos este mes"
+              value={`$${(stats?.ingresosMes || 0).toLocaleString("es-AR")}`}
+              color="green"
+              subtext={`${stats?.pagosRegistrados || 0} pagos`}
+            />
+
+            <StatCard
+              icon={<Activity size={28} />}
+              title="Asistencias hoy"
+              value={stats?.asistenciasHoy || 0}
+              color="purple"
+              subtext={`${stats?.asistenciasMes || 0} este mes`}
+            />
+
+            <StatCard
+              icon={<AlertCircle size={28} />}
+              title="Por cobrar"
+              value={stats?.alumnosPorVencer || 0}
+              color="orange"
+              subtext={`${stats?.alumnosVencidos || 0} vencidas`}
+            />
+          </div>
+
+          {/* Segundo nivel de información */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Estado de membresías */}
+            <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <CheckCircle2 size={20} className="text-green-500" />
+                Estado de Membresías
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-green-900/20 rounded-lg border border-green-800/50">
+                  <span className="text-green-300 text-sm">Al día</span>
+                  <span className="text-xl font-bold text-green-400">
+                    {stats?.alumnosActivos || 0}
                   </span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Alumnos con membresía vencida */}
-        <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <AlertCircle size={20} className="text-red-500" />
-            Necesitan cobro
-          </h2>
-          <div className="space-y-2">
-            {alumnosVencidos.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">
-                Todos al día
-              </p>
-            ) : (
-              alumnosVencidos.map((alumno) => (
-                <div
-                  key={alumno.id}
-                  className="flex items-center justify-between p-2 hover:bg-gray-800/50 rounded transition-colors border-l-2 border-red-500"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-gray-300 text-sm font-medium truncate">
-                      {alumno.apellido}, {alumno.nombre}
-                    </p>
-                    <p className="text-gray-500 text-xs">Vencida</p>
-                  </div>
+                <div className="flex items-center justify-between p-3 bg-yellow-900/20 rounded-lg border border-yellow-800/50">
+                  <span className="text-yellow-300 text-sm">Por vencer</span>
+                  <span className="text-xl font-bold text-yellow-400">
+                    {stats?.alumnosPorVencer || 0}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+                <div className="flex items-center justify-between p-3 bg-red-900/20 rounded-lg border border-red-800/50">
+                  <span className="text-red-300 text-sm">Vencidas</span>
+                  <span className="text-xl font-bold text-red-400">
+                    {stats?.alumnosVencidos || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-      {/* Quick actions */}
-      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-        <h2 className="text-lg font-semibold text-white mb-4">
-          Acciones rápidas
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickActionButton
-            icon={<Users size={20} />}
-            label="Nuevo alumno"
-            href="/alumnos"
-            color="blue"
-          />
-          <QuickActionButton
-            icon={<DollarSign size={20} />}
-            label="Registrar pago"
-            href="/alumnos"
-            color="green"
-          />
-          <QuickActionButton
-            icon={<Activity size={20} />}
-            label="Check-in"
-            href="/checkin"
-            color="purple"
-          />
-          <QuickActionButton
-            icon={<Calendar size={20} />}
-            label="Ver asistencias"
-            href="/asistencias"
-            color="orange"
-          />
+            {/* Últimas asistencias */}
+            <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Clock size={20} className="text-blue-500" />
+                Últimas entradas
+              </h2>
+              <div className="space-y-2">
+                {asistenciasHoy.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-4">
+                    Sin asistencias hoy
+                  </p>
+                ) : (
+                  asistenciasHoy.map((asistencia) => (
+                    <div
+                      key={asistencia.id}
+                      className="flex items-center justify-between p-2 hover:bg-gray-800/50 rounded transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span className="text-gray-300 text-sm truncate">
+                          {asistencia.nombreAlumno}
+                        </span>
+                      </div>
+                      <span className="text-gray-500 text-xs ml-2 flex-shrink-0">
+                        {new Date(
+                          asistencia.fechaHora.toDate?.() ||
+                            asistencia.fechaHora,
+                        ).toLocaleTimeString("es-AR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Alumnos con membresía vencida */}
+            <div className="lg:col-span-1 bg-gray-900 rounded-xl p-6 border border-gray-800">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <AlertCircle size={20} className="text-red-500" />
+                Necesitan cobro
+              </h2>
+              <div className="space-y-2">
+                {alumnosVencidos.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-4">
+                    Todos al día
+                  </p>
+                ) : (
+                  alumnosVencidos.map((alumno) => (
+                    <div
+                      key={alumno.id}
+                      className="flex items-center justify-between p-2 hover:bg-gray-800/50 rounded transition-colors border-l-2 border-red-500"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-300 text-sm font-medium truncate">
+                          {alumno.apellido}, {alumno.nombre}
+                        </p>
+                        <p className="text-gray-500 text-xs">Vencida</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Acciones rápidas
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <QuickActionButton
+                icon={<Users size={20} />}
+                label="Nuevo alumno"
+                href="/alumnos"
+                color="blue"
+              />
+              <QuickActionButton
+                icon={<DollarSign size={20} />}
+                label="Registrar pago"
+                href="/alumnos"
+                color="green"
+              />
+              <QuickActionButton
+                icon={<Activity size={20} />}
+                label="Check-in"
+                href="/checkin"
+                color="purple"
+              />
+              <QuickActionButton
+                icon={<Calendar size={20} />}
+                label="Ver asistencias"
+                href="/asistencias"
+                color="orange"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Tab: Gráfico de Asistencias */}
+      {activeTab === "attendance" && (
+        <div className="space-y-6">
+          <AttendanceChart />
         </div>
-      </div>
+      )}
+
+      {/* Tab: Gráfico de Ingresos */}
+      {activeTab === "revenue" && (
+        <div className="space-y-6">
+          <RevenueChart />
+        </div>
+      )}
+
+      {/* Tab: Comparativa */}
+      {activeTab === "comparison" && (
+        <div className="space-y-6">
+          <MonthComparison />
+        </div>
+      )}
     </div>
   );
 }

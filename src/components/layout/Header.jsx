@@ -2,7 +2,7 @@ import { Menu, Moon, Sun, QrCode } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { useGym } from "../../context/GymContext";
 import { Link } from "react-router-dom";
-
+import logoMono from "../../assets/logomono1.png";
 export default function Header({ onMenuClick }) {
   const { theme, toggleTheme } = useTheme();
   const { gymConfig } = useGym();
@@ -31,8 +31,12 @@ export default function Header({ onMenuClick }) {
           to="/"
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
-            G
+          <div className="h-14 w-14 rounded-lg overflow-hidden shadow-md">
+            <img
+              src={logoMono}
+              alt="Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="font-semibold text-white hidden sm:block text-lg">
             {gymConfig.nombre}

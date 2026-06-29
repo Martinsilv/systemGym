@@ -8,7 +8,7 @@ import { db } from './firebase'
  */
 export async function registrarAsistencia(alumno) {
   const ahora = new Date()
-  const hoy = ahora.toISOString().split('T')[0] // "2024-01-15"
+  const hoy = ahora.toISOString().split('T')[0]
 
   const asistencia = {
     alumnoId: alumno.id,
@@ -87,6 +87,23 @@ export async function getAsistenciasMesActual() {
 }
 
 /**
+ * Obtener asistencias de un rango de fechas (mes/año específico)
+ */
+export async function getAsistenciasPorRango(desde, hasta) {
+  const desdeStr = desde.toISOString().split('T')[0]
+  const hastaStr = hasta.toISOString().split('T')[0]
+
+  const q = query(
+    collection(db, 'asistencias'),
+    where('fecha', '>=', desdeStr),
+    where('fecha', '<=', hastaStr),
+    orderBy('fecha', 'desc')
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+}
+
+/**
  * Contar asistencias por alumno en un rango de fechas
  */
 export async function contarAsistenciasAlumno(alumnoId, desde, hasta) {
@@ -117,13 +134,11 @@ export async function getResumenAsistenciasMes() {
   }
 
   asistencias.forEach(asistencia => {
-    // Por actividad
     if (!resumen.porActividad[asistencia.actividad]) {
       resumen.porActividad[asistencia.actividad] = 0
     }
     resumen.porActividad[asistencia.actividad]++
 
-    // Por alumno
     if (!resumen.porAlumno[asistencia.alumnoId]) {
       resumen.porAlumno[asistencia.alumnoId] = {
         nombre: asistencia.nombreAlumno,
@@ -132,7 +147,6 @@ export async function getResumenAsistenciasMes() {
     }
     resumen.porAlumno[asistencia.alumnoId].count++
 
-    // Por día
     if (!resumen.dias[asistencia.fecha]) {
       resumen.dias[asistencia.fecha] = 0
     }
@@ -140,4 +154,54 @@ export async function getResumenAsistenciasMes() {
   })
 
   return resumen
+}
+
+/**
+ * 🔥 NUEVO: Obtener datos de asistencias para últimos 12 meses
+ */
+export async function getAsistenciasUltimos12Meses() {
+  const ahora = new Date()
+  const hace12Meses = new Date(ahora.getFullYear() - 1, ahora.getMonth(), 1)
+  
+  const q = query(
+    collection(db, 'asistencias'),
+    where('fecha', '>=', hace12Meses.toISOString().split('T')[0]),
+    orderBy('fecha', 'desc')
+  )
+  
+  const snapshot = await getDocs(q)
+  const asistencias = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  
+  // Agrupar por mes
+  const porMes = {}
+  
+  asistencias.forEach(asistencia => {
+    const fecha = new Date(asistencia.fecha)
+    const mesAno = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
+    
+    if (!porMes[mesAno]) {
+      porMes[mesAno] = 0
+    }
+    porMes[mesAno]++
+  })
+  
+  return porMes
+}
+
+/**
+ * 🔥 NUEVO: Obtener asistencias por mes (mes específico)
+ */
+export async function getAsistenciasMes(mes, ano) {
+  const primerDia = new Date(ano, mes - 1, 1).toISOString().split('T')[0]
+  const ultimoDia = new Date(ano, mes, 0).toISOString().split('T')[0]
+
+  const q = query(
+    collection(db, 'asistencias'),
+    where('fecha', '>=', primerDia),
+    where('fecha', '<=', ultimoDia),
+    orderBy('fecha', 'desc')
+  )
+  
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 }

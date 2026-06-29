@@ -133,15 +133,15 @@ export default function CheckinPage() {
                   </label>
                   <span
                     className={`
-              text-xs font-bold px-2.5 py-1.5 rounded-md
-              ${
-                ultimoCheckin.estado.status === "activo"
-                  ? "bg-green-500/25 text-green-300"
-                  : ultimoCheckin.estado.status === "por-vencer"
-                    ? "bg-yellow-500/25 text-yellow-300"
-                    : "bg-red-500/25 text-red-300"
-              }
-            `}
+        text-xs font-bold px-2.5 py-1.5 rounded-md
+        ${
+          ultimoCheckin.estado.status === "activo"
+            ? "bg-green-500/25 text-green-300"
+            : ultimoCheckin.estado.status === "por-vencer"
+              ? "bg-yellow-500/25 text-yellow-300"
+              : "bg-red-500/25 text-red-300"
+        }
+      `}
                   >
                     {ultimoCheckin.estado.status === "activo"
                       ? "AL DÍA"
@@ -150,8 +150,25 @@ export default function CheckinPage() {
                         : "VENCIDO"}
                   </span>
                 </div>
-              </div>
 
+                {/* Aviso de vencimiento */}
+                {ultimoCheckin.estado.status === "por-vencer" && (
+                  <div className="flex justify-between items-center">
+                    <label className="text-gray-500 text-xs uppercase tracking-wide">
+                      Aviso
+                    </label>
+                    <span className="text-yellow-300 text-sm font-medium">
+                      {ultimoCheckin.estado.diasRestantes === 0
+                        ? "⚠️ Vence hoy"
+                        : `Faltan ${ultimoCheckin.estado.diasRestantes} ${
+                            ultimoCheckin.estado.diasRestantes === 1
+                              ? "día"
+                              : "días"
+                          } para vencer`}
+                    </span>
+                  </div>
+                )}
+              </div>
               {/* Sección 3: Acción */}
               {(ultimoCheckin.estado.status === "por-vencer" ||
                 ultimoCheckin.estado.status === "vencido") && (

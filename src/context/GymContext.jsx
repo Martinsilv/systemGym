@@ -10,7 +10,7 @@ export function GymProvider({ children }) {
     return saved
       ? JSON.parse(saved)
       : {
-          nombre: "Mi Gimnasio",
+          nombre: "MONKEY ATHLETICS",
           logo: null, // URL o base64 del logo
         };
   });
